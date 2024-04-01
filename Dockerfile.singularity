@@ -1,0 +1,47 @@
+# Use a base image with golang preinstalled
+FROM golang:1.22.1-bullseye
+
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libssl-dev \
+    uuid-dev \
+    libgpgme11-dev \
+    squashfs-tools \
+    git \
+    libseccomp-dev \
+    libglib2.0-dev \
+    pkg-config \
+    libfuse3-dev \
+    autoconf \
+    automake \
+    libtool
+
+# Set up environment variables
+ENV GOPATH /go
+
+# Clone Singularity repository and compile
+RUN mkdir -p $GOPATH/src/github.com/sylabs && \
+    cd $GOPATH/src/github.com/sylabs && \
+    git clone --recurse-submodules https://github.com/sylabs/singularity.git && \
+    cd singularity && \
+    go get -u -v github.com/golang/dep/cmd/dep && \
+    ./mconfig --without-conmon && \
+    make -C builddir && \
+    make -C builddir install
+
+
+RUN apt install  openssh-server sudo -y
+
+# Create privilege separation directory for SSH
+RUN mkdir /run/sshd
+
+RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test 
+
+RUN  echo 'test:test' | chpasswd
+EXPOSE 22
+
+WORKDIR /MCTS
+COPY . .
+
+CMD ["/usr/sbin/sshd", "-D"]
