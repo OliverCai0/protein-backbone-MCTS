@@ -1,1 +1,8 @@
 *.sif
+*.DS_STORE
+*.dump
+*/__pycache__/*
+__pycache__/*
+
+!fmh/*
+*.env

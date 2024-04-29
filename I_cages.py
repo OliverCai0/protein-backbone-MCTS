@@ -24,30 +24,18 @@ from sklearn.cluster import KMeans
 import scipy
 from scipy.stats import norm
 import random
-import statistics
 import time
-import timeit
 import math
 import localization as lx
-import gzip
 
 import npose_util as nu
 import motif_stuff2
 
-import subprocess
-import datetime
 
 import math
-from collections import defaultdict
 import time
-import argparse
 import itertools
-import subprocess
-import getpy
-import xbin
-import h5py
 
-import voxel_array
 import npose_util as nu
 
 from importlib import reload
@@ -55,7 +43,7 @@ reload(nu)
 
 
 
-zero_ih = nu.npose_from_file('/opt/conda/envs/env/rl_tree_source/zero_ih_long.pdb')
+zero_ih = nu.npose_from_file('./rl_tree_source_env/zero_ih_long.pdb')
 
 def save_obj(obj, name):
     with open(name + '.pkl', 'wb') as f:
@@ -78,7 +66,7 @@ def icosahedral_op(pt_set,icosa_xform_set=icosa_xforms): # icosahedral symmetry 
     return np.concatenate(tuple(i_out))
 
 
-rr = np.load('/opt/conda/envs/env/rl_tree_source/all_loops_bCov.npz', allow_pickle=True)
+rr = np.load('./rl_tree_source_env/all_loops_bCov.npz', allow_pickle=True)
 all_loops = [rr[f] for f in rr.files][0]
     
 
@@ -371,7 +359,8 @@ def score_build(input_pose, input_ss=None, icosa_xform_set=icosa_xforms):
 def test_builder(num_runs = 80000001):
     ct = 0
     while ct < num_runs:
-
+        if ct % 1000 == 0:
+            print(f'[LOG] test_builder iteration {ct}')
 #         if ct % 1000 == 0 and len(g.builds) > 0:
 #             series = [ind for ind,_ in enumerate(g.builds)]
 
@@ -816,7 +805,7 @@ class tree_builder():
 # save_obj(binned_loops,'binned_loops_no0')
 
 # loading binned loops from .pkl file
-binned_loops = load_obj('/opt/conda/envs/env/rl_tree_source/binned_loops_no0')
+binned_loops = load_obj('rl_tree_source_env/binned_loops_no0')
 
 # build_mesh = '../build_vol.obj'
 
@@ -968,6 +957,7 @@ def random_init_build(runs):
         test_iters = 500
         test_builder(num_runs = test_iters)
 
+        print(f'[LOG] max(g.overall_scores) {max(g.overall_scores)}')
         # if builds are getting longer than x residues and scoring well enough, do full number of iterations
         if max(g.overall_scores) > 0.0001:
             
@@ -992,8 +982,17 @@ def random_init_build(runs):
                     bd_ss = pre_bd[1]
 
                     pc_scn, motif_hits, pore_score, ic_ms, worst_hel, score_weight = score_build(bd,input_ss=bd_ss,icosa_xform_set=g.xforms)
+                    print(f'[LOG] build {bind} \n \
+                                  pc_scn {pc_scn} \n \
+                                  motif_hits {motif_hits} \n \
+                                  pore_score {pore_score} \n \
+                                  ic_ms {ic_ms} \n \
+                                  worst_hel {worst_hel} \n \
+                                  score_weight {score_weight}')
+                    print('--------------------------------------')
 
                     if pc_scn >= 0.2 and motif_hits >= 0.9 and pore_score >= 0.45 and ic_ms > 17 and worst_hel > 2.0:
+                        print("[LOG] Dumping")
                         dump_holigomer(icosahedral_op(bd),60,f'outputs/build_{str(pc_scn)[:6]}_{str(motif_hits)[:4]}_{str(pore_score)[:6]}_{str(ic_ms)[:6]}_{str(worst_hel)[:4]}_{str(score_weight)[:8]}')
                         dump_ct += 1
 
@@ -1010,5 +1009,7 @@ maxs = [75,75,75]
 mins = [0,0,0]
 
 
-for _ in range(99999999):
+for i in range(99999999):
+    if i % 1000 == 0:
+        print(f'[LOG] iteration number {i}')
     random_init_build(10000)
